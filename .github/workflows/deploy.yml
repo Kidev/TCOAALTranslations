@@ -1,0 +1,60 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup site
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/id_key
+          chmod 600 ~/.ssh/id_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/id_key -o StrictHostKeyChecking=no" \
+            git clone --recursive git@github.com:cal-mods/translations.git _translations_src
+          mkdir -p _site/translations
+          > _site/translations/langs.txt
+          for trans_dir in _translations_src/*/; do
+            trans_name=$(basename "$trans_dir")
+            [ -d "$trans_dir" ] || continue
+            [[ "$trans_name" == _* ]] && continue
+            cp -r "$trans_dir" "_site/translations/$trans_name"
+            echo "$trans_name" >> _site/translations/langs.txt
+          done
+          rm -rf _translations_src ~/.ssh/id_key
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+          retention-days: 1
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Delete artifact
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: github-pages
