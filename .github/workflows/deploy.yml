@@ -33,6 +33,7 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
           GIT_SSH_COMMAND="ssh -i ~/.ssh/id_key -o StrictHostKeyChecking=no" \
             git clone --recursive git@github.com:cal-mods/translations.git _translations_src
+          rm -f _translations_src/generate-manifests.js
           mkdir -p _site/translations
           > _site/translations/langs.txt
           for trans_dir in _translations_src/*/; do
