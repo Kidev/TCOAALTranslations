@@ -35,13 +35,23 @@ jobs:
             git clone --recursive git@github.com:cal-mods/translations.git _translations_src
           rm -f _translations_src/generate-manifests.js
           mkdir -p _site/translations
-          > _site/translations/langs.txt
-          for trans_dir in _translations_src/*/; do
-            trans_name=$(basename "$trans_dir")
-            [ -d "$trans_dir" ] || continue
-            [[ "$trans_name" == _* ]] && continue
-            cp -r "$trans_dir" "_site/translations/$trans_name"
-            echo "$trans_name" >> _site/translations/langs.txt
+          > _site/translations/mods.txt
+          for mod_dir in _translations_src/*/; do
+            mod_name=$(basename "$mod_dir")
+            [ -d "$mod_dir" ] || continue
+            [[ "$mod_name" == _* ]] && continue
+            [[ "$mod_name" == .* ]] && continue
+            [[ "$mod_name" == *_translations ]] || continue
+            cp -r "$mod_dir" "_site/translations/$mod_name"
+            echo "$mod_name" >> _site/translations/mods.txt
+            > "_site/translations/$mod_name/langs.txt"
+            for lang_dir in "$mod_dir"*/; do
+              lang_name=$(basename "$lang_dir")
+              [ -d "$lang_dir" ] || continue
+              [[ "$lang_name" == _* ]] && continue
+              [[ "$lang_name" == .* ]] && continue
+              echo "$lang_name" >> "_site/translations/$mod_name/langs.txt"
+            done
           done
           rm -rf _translations_src ~/.ssh/id_key
 
